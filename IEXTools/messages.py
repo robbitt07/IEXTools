@@ -127,10 +127,12 @@ class MessageDecoder(object):
             for msg in self.message_types[version]
         }
 
-    def decode_message(self, msg_type: int, binary_msg: bytes) -> AllMessages:
+    def decode_message(self, msg_type: int, binary_msg: bytes, pass_msg_type: bool = False) -> AllMessages:
         try:
             fmt = self.DECODE_FMT[msg_type]
         except KeyError as e:
+            if pass_msg_type:
+                ...
             raise ProtocolException(f"Unknown message type: {e.args}")
         decoded_msg = struct.unpack(fmt, binary_msg)
         msg = self.MSG_CLS[msg_type](*decoded_msg)

@@ -59,11 +59,13 @@ class Parser(object):
         tops: bool = True,
         deep: bool = False,
         tops_version: float = 1.6,
+        pass_msg_type: bool = False
     ) -> None:
         self.file_path = file_path
         self.tops = tops
         self.deep = deep
         self.file = self._load(file_path)
+        self.pass_msg_type = pass_msg_type
         # IEX TP Header Structure
         # Many of these byte strings are hardcoded and may cause compatibility
         # issues with future or previous versions of TOPS, DEEP, or the EIX
@@ -278,7 +280,7 @@ class Parser(object):
             self._read_next_message()
 
         self.message = self.decoder.decode_message(
-            self.message_type, self.message_binary
+            self.message_type, self.message_binary, pass_msg_type=self.pass_msg_type
         )
         return self.message
 
