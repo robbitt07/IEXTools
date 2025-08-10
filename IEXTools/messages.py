@@ -99,6 +99,11 @@ class MessageDecoder(object):
                     "cls": AuctionInformation,
                     "fmt": "<1sq8sLqqL1sBLqqqq",
                 },
+                b"\x49": {
+                    "str": "Retail Liquidity Indicator",
+                    "cls": RetailLiquidityIndicator,
+                    "fmt": "<cq8s",
+                },
             },
             1.5: {
                 b"\x51": {
@@ -132,8 +137,9 @@ class MessageDecoder(object):
             fmt = self.DECODE_FMT[msg_type]
         except KeyError as e:
             if pass_msg_type:
-                ...
+                return UnknownMessage(msg_type=msg_type)
             raise ProtocolException(f"Unknown message type: {e.args}")
+
         decoded_msg = struct.unpack(fmt, binary_msg)
         msg = self.MSG_CLS[msg_type](*decoded_msg)
         return msg
@@ -417,10 +423,40 @@ class AuctionInformation(Message):
     upper_auction_collar_price_int: int  # 8 bytes
 
 
+@dataclass
+class RetailLiquidityIndicator(Message):
+    """
+    Retail Liquidity Indicator message as defined in the IEX DEEP/TOPS spec.
+    Indicates the presence of retail liquidity on the IEX order book.
+    """
+
+    __slots__ = (
+        "indicator",
+        "timestamp",
+        "symbol",
+    )
+    indicator: str
+    timestamp: int
+    symbol: str
+
+
+@dataclass
+class UnknownMessage(Message):
+    """
+    Unknown Message not configured
+    """
+
+    __slots__ = (
+        "msg_type",
+    )
+    msg_type: int
+
+
 AllMessages = Union[
     ShortSalePriceSale,
     TradeBreak,
     AuctionInformation,
+    RetailLiquidityIndicator,
     TradeReport,
     OfficialPrice,
     SystemEvent,
@@ -428,4 +464,5 @@ AllMessages = Union[
     TradingStatus,
     OperationalHalt,
     QuoteUpdate,
+    UnknownMessage
 ]
