@@ -101,8 +101,8 @@ class MessageDecoder(object):
                 },
                 b"\x49": {
                     "str": "Retail Liquidity Indicator",
-                    "cls": RetailLiquidityIndicator,
-                    "fmt": "<cq8s",
+                    "cls": RetailLiquidity,
+                    "fmt": "<1sq8s",
                 },
             },
             1.5: {
@@ -424,20 +424,19 @@ class AuctionInformation(Message):
 
 
 @dataclass
-class RetailLiquidityIndicator(Message):
+class RetailLiquidity(Message):
     """
-    Retail Liquidity Indicator message as defined in the IEX DEEP/TOPS spec.
-    Indicates the presence of retail liquidity on the IEX order book.
+    From the TOPS specification document: "TOPS broadcasts a real-time Retail Liquidity
+    Indicator Message each time there is an update to IEX's eligible retail 
+    liquidity interest during the trading day. Prior to the start of trading, IEX publishes
+    a "no interest indicator" (Retail Liquidity Indicator is set to '0x20') for all
+    symbols in the IEX Trading System.
     """
 
-    __slots__ = (
-        "indicator",
-        "timestamp",
-        "symbol",
-    )
-    indicator: str
-    timestamp: int
-    symbol: str
+    __slots__ = ("retail_liquidity_indicator", "timestamp", "symbol")
+    retail_liquidity_indicator: str  # 1 byte
+    timestamp: int  # 8 bytes
+    symbol: str  # 8 bytes
 
 
 @dataclass
@@ -456,7 +455,7 @@ AllMessages = Union[
     ShortSalePriceSale,
     TradeBreak,
     AuctionInformation,
-    RetailLiquidityIndicator,
+    RetailLiquidity,
     TradeReport,
     OfficialPrice,
     SystemEvent,

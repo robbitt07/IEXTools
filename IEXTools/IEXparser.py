@@ -101,8 +101,10 @@ class Parser(object):
             messages.SystemEvent: b"\x53",
             messages.SecurityDirective: b"\x44",
             messages.TradingStatus: b"\x48",
+            messages.RetailLiquidity: b"\x49",
             messages.OperationalHalt: b"\x4f",
             messages.QuoteUpdate: b"\x51",
+            messages.UnknownMessage: b"\x00",
         }
 
         self.decoder = messages.MessageDecoder(version=tops_version)
