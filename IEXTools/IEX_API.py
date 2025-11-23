@@ -72,17 +72,58 @@ def http_retry(method: Callable) -> Callable:
 
 
 class IEXAPI(object):
+    """
+    Client for IEX Cloud REST API.
+
+    Provides a Python interface to the IEX Cloud API with automatic retry
+    logic and error handling. Supports all major IEX data endpoints including
+    quotes, charts, company info, and market data.
+
+    Parameters
+    ----------
+    timeout : int, default 5
+        Request timeout in seconds.
+
+    Attributes
+    ----------
+    timeout : int
+        Request timeout in seconds.
+    BASE : str
+        Base URL template for API endpoints.
+
+    Examples
+    --------
+    >>> api = IEXAPI()
+    >>> quote = api.quote('AAPL')
+    """
+
     def __init__(self, timeout: int = 5) -> None:
+        """
+        Initialize the IEX API client.
+
+        Parameters
+        ----------
+        timeout : int, default 5
+            Request timeout in seconds.
+        """
         self.timeout = timeout
         self.BASE = "https://api.iextrading.com/1.0/{}"
 
     def _get_endpoint(self, entity: str, ID: List[str]) -> str:
         """
-        Returns the endpoint to be used for the web request.
+        Get the API endpoint for a given entity and resource ID.
 
-        Params:
-            entity  : type of object being requested (e.g., 'batch', 'book', 'chart')
-            ID      : name or identification string for the resource
+        Parameters
+        ----------
+        entity : str
+            Type of object being requested (e.g., 'batch', 'book', 'chart').
+        ID : List[str]
+            Name or identification string(s) for the resource.
+
+        Returns
+        -------
+        str
+            Complete API endpoint URL.
         """
 
         endpoints = {
@@ -158,8 +199,29 @@ class IEXAPI(object):
         self, method: str, endpoint: str, params: Optional[dict] = None
     ) -> dict:
         """
-        Wrapper around the requests library to validate inputs to a request,
-        make the request, and handle any errors.
+        Make an HTTP request to the IEX API with error handling.
+
+        Wrapper around the requests library to validate inputs, make the request,
+        and handle any HTTP errors.
+
+        Parameters
+        ----------
+        method : str
+            HTTP method ('GET', 'POST', etc.).
+        endpoint : str
+            Complete API endpoint URL.
+        params : dict, optional
+            Query parameters for the request.
+
+        Returns
+        -------
+        dict
+            JSON response from the API.
+
+        Raises
+        ------
+        requests.HTTPError
+            If the API returns an error status code.
         """
         params = params if params else {}
         logging.debug(

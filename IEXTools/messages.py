@@ -36,14 +36,32 @@ trading_status_messages = {
 
 
 class MessageDecoder(object):
+    """
+    Decoder for IEX protocol messages.
+
+    This class provides utilities for decoding binary IEX TOPS and DEEP
+    protocol messages into structured Python objects. It supports multiple
+    protocol versions and handles the conversion from binary data to
+    message objects.
+    """
+
     def __init__(self, version: float = 1.6) -> None:
         """
-        Some notes on data types used in decoding IEX messages:
-        B: unsigned byte
-        H: short unsigned int (2 bytes)
-        L: long unsigned int (4 bytes)
-        s: string (size denoted by preceding number)
-        q: signed long long (8 bytes)
+        Initialize the message decoder with protocol version support.
+
+        Parameters
+        ----------
+        version : float, default 1.6
+            IEX protocol version to use for decoding. Supported versions include 1.6.
+
+        Notes
+        -----
+        Data types used in decoding IEX messages:
+        - B: unsigned byte
+        - H: short unsigned int (2 bytes)
+        - L: long unsigned int (4 bytes)
+        - s: string (size denoted by preceding number)
+        - q: signed long long (8 bytes)
         """
         self.message_types: Dict[
             float, Dict[bytes, Dict[str, Union[str, AllMessages]]]
@@ -133,6 +151,29 @@ class MessageDecoder(object):
         }
 
     def decode_message(self, msg_type: int, binary_msg: bytes, pass_msg_type: bool = False) -> AllMessages:
+        """
+        Decode a binary IEX message into a structured message object.
+
+        Parameters
+        ----------
+        msg_type : int
+            The message type identifier (first byte of the binary message).
+        binary_msg : bytes
+            The raw binary message data to decode.
+        pass_msg_type : bool, default False
+            If True, return an UnknownMessage object for unrecognized message types
+            instead of raising an exception.
+
+        Returns
+        -------
+        AllMessages
+            A decoded message object corresponding to the message type.
+
+        Raises
+        ------
+        ProtocolException
+            If the message type is not recognized and pass_msg_type is False.
+        """
         try:
             fmt = self.DECODE_FMT[msg_type]
         except KeyError as e:
@@ -150,9 +191,20 @@ class Message(object):
     """
     Superclass to all message types - should never be instantiated.
 
-    Grouping common operations among the different message types. Processes any
-    bytes objects into string objects and computes the prices in messages as
-    floats.
+    This is the superclass for all IEX message types and should never be
+    instantiated directly. It provides common functionality for processing
+    message data including timestamp conversion, string decoding, and price
+    calculations.
+
+    Attributes
+    ----------
+    date_time : datetime
+        UTC timestamp converted from the message timestamp field.
+
+    Notes
+    -----
+    Automatically processes bytes objects into strings and converts integer
+    price fields to float values during initialization.
     """
 
     __slots__ = "date_time"
@@ -177,10 +229,24 @@ class Message(object):
 @dataclass
 class SystemEvent(Message):
     """
-    From the TOPS specification document: "The System Event Message is used to
-    indicate events that apply to the market or the data feed. There will be a
-    single message disseminated per channel for each System Event type within a
-    given trading session."
+    System Event Message for IEX market status updates.
+
+    Used to indicate events that apply to the market or the data feed.
+    There will be a single message disseminated per channel for each
+    System Event type within a given trading session.
+
+    Attributes
+    ----------
+    system_event : int
+        System event type identifier.
+    timestamp : int
+        Message timestamp as nanoseconds since Unix epoch.
+    system_event_str : str
+        Human-readable description of the system event.
+
+    References
+    ----------
+    IEX TOPS Specification - System Event Message
     """
 
     __slots__ = ("system_event", "timestamp", "system_event_str")
@@ -195,10 +261,30 @@ class SystemEvent(Message):
 @dataclass
 class SecurityDirective(Message):
     """
-    From the TOPS specification document: "IEX disseminates a full pre-market
-    spin of Security Directory Messages for all IEX-listed securities. After
-    the pre-market spin, IEX will use the Security Directory Message to relay
-    changes for an individual security"
+    Security Directory Message for IEX-listed securities.
+
+    IEX disseminates a full pre-market spin of Security Directory Messages
+    for all IEX-listed securities. After the pre-market spin, IEX will use
+    the Security Directory Message to relay changes for an individual security.
+
+    Attributes
+    ----------
+    flags : int
+        Security flags.
+    timestamp : int
+        Message timestamp as nanoseconds since Unix epoch.
+    symbol : str
+        Security symbol.
+    round_lot_size : int
+        Round lot size for the security.
+    adjusted_poc_close : float
+        Adjusted previous official closing price.
+    luld_tire : int
+        LULD Tier.
+
+    References
+    ----------
+    IEX TOPS Specification - Security Directory Message
     """
 
     __slots__ = (
@@ -221,22 +307,43 @@ class SecurityDirective(Message):
 @dataclass
 class TradingStatus(Message):
     """
-    From the TOPS specification document: "The Trading Status Message is used
-    to indicate the current trading status of a security."
+    Trading Status Message for security trading state updates.
 
-    The reason string is also defined in the docs:
-    - Trading Halt Reasons
-        o T1: Halt News Pending
-        o IPO1: IPO Not Yet Trading
-        o IPOD: IPO Deferred
-        o MCB3: Market-Wide Circuit Breaker Level 3 Breached
-        o NA: Reason Not Available
-    - Order Acceptance Period Reasons
-        o T2: Halt News Dissemination
-        o IPO2: IPO Order Acceptance Period
-        o IPO3: IPO Pre-Launch Period
-        o MCB1: Market-Wide Circuit Breaker Level 1 Breached
-        o MCB2: Market-Wide Circuit Breaker Level 2 Breached
+    Used to indicate the current trading status of a security. This includes
+    trading halts, order acceptance periods, and trading pauses.
+
+    Attributes
+    ----------
+    status : str
+        Trading status ('H', 'O', 'P', 'T').
+    timestamp : int
+        Message timestamp as nanoseconds since Unix epoch.
+    symbol : str
+        Security symbol.
+    reason : str
+        Reason code for the trading status change.
+    trading_status_message : str
+        Human-readable description of the trading status.
+
+    Notes
+    -----
+    Trading Halt Reasons:
+    - T1: Halt News Pending
+    - IPO1: IPO Not Yet Trading
+    - IPOD: IPO Deferred
+    - MCB3: Market-Wide Circuit Breaker Level 3 Breached
+    - NA: Reason Not Available
+
+    Order Acceptance Period Reasons:
+    - T2: Halt News Dissemination
+    - IPO2: IPO Order Acceptance Period
+    - IPO3: IPO Pre-Launch Period
+    - MCB1: Market-Wide Circuit Breaker Level 1 Breached
+    - MCB2: Market-Wide Circuit Breaker Level 2 Breached
+
+    References
+    ----------
+    IEX TOPS Specification - Trading Status Message
     """
 
     __slots__ = ("status", "timestamp", "symbol", "reason", "trading_status_message")

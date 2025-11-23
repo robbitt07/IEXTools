@@ -49,8 +49,26 @@ class Parser(object):
     Creates the Parser object. Simply pass the filepath of the pcap file when
     initializing the object.
 
-    Usage:
-    p = Parser(filepath)
+    Parses binary IEX message data from pcap files and converts them into
+    structured Python objects. Supports both TOPS and DEEP protocol versions.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the pcap file to parse.
+    tops : bool, default True
+        Whether this is a TOPS protocol file.
+    deep : bool, default False
+        Whether this is a DEEP protocol file.
+    tops_version : float, default 1.6
+        TOPS protocol version to use for parsing.
+    pass_msg_type : bool, default False
+        Whether to pass through unknown message types instead of raising exceptions.
+
+    Examples
+    --------
+    >>> parser = Parser('data/tops.pcap')
+    >>> message = parser.get_next_message()
     """
 
     def __init__(
@@ -250,21 +268,34 @@ class Parser(object):
         self, allowed: Optional[Union[List[AllMessages], Tuple[AllMessages]]] = None
     ) -> AllMessages:
         """
-        Returns the next message in the pcap file. The user may optionally
-        provide an 'allowed' argument to specify which type of messages they
-        would like to retrieve. Please note that limiting the returned messages
-        probably does not improve performance by that much, in fact tests have
-        shown reduced rate of messages returned when allowed messages are
-        specified (note the rate of messages returned is lower, but not the
-        rate of messages analyzed).
+        Get the next message from the pcap file.
 
-        Inputs:
+        Returns the next message in the pcap file. Optionally filter by message
+        types using the 'allowed' parameter. Note that filtering may not
+        significantly improve performance as all messages are still analyzed.
 
-            allowed : types of messages to be returned
+        Parameters
+        ----------
+        allowed : list of AllMessages or tuple of AllMessages, optional
+            Message types to return. If None, all messages are returned.
 
-        Returns:
+        Returns
+        -------
+        AllMessages
+            Decoded message from the IEX file.
 
-            message : decoded message from IEX file
+        Raises
+        ------
+        ValueError
+            If allowed is not a list or tuple.
+        StopIteration
+            If there are no more messages in the file.
+
+        Notes
+        -----
+        Filtering messages may reduce the rate of returned messages but
+        doesn't significantly improve parsing performance since all messages
+        are still analyzed internally.
         """
         if not isinstance(allowed, (list, tuple)) and allowed is not None:
             raise ValueError("allowed must be either a list or tuple")

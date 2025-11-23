@@ -4,12 +4,44 @@ Collection of tests that I have been using to perform various benchmarks on
 parts of the parser.
 """
 from IEXparser import Parser
+
 import messages
-from datetime import datetime, timezone
+import os
 from timeit import default_timer
+from typing import List, Optional
 
 
-def benchmark(file_path, num_msgs, allowed, symbols=None, printing=False):
+def benchmark(file_path: os.PathLike,
+              num_msgs: int,
+              allowed: List[messages.AllMessages],
+              symbols: Optional[List[str]] = None,
+              printing: bool = False) -> int:
+    """
+    Run performance benchmarks on parser operations.
+
+    Parameters
+    ----------
+    file_path : os.PathLike
+        Path to the pcap file to benchmark.
+    num_msgs : int
+        Number of messages to process.
+    allowed : List[messages.AllMessages] or None
+        List of allowed message types, or None for all types.
+    symbols : List[str], optional
+        List of symbols to filter by, or None for all symbols.
+    printing : bool, default False
+        Whether to print message details during benchmarking.
+
+    Returns
+    -------
+    int
+        Number of bytes read during the benchmark.
+
+    Raises
+    ------
+    Exception
+        If an error occurs during parsing.
+    """
     p = Parser(file_path)
     try:
         for i in range(num_msgs):
@@ -28,16 +60,17 @@ def benchmark(file_path, num_msgs, allowed, symbols=None, printing=False):
     return p.bytes_read
 
 
-def benchmark_allowed(file_path, num_msgs):
+def benchmark_allowed(file_path: os.PathLike, num_msgs: int) -> None:
     """
     Understand performance implications of passing a list of "allowed" message
     types.
 
     Results:
-    Beginning test - 1,000,000 messages - all messages, not printing
-    Parsed 1,000,000 messages in 52.2 seconds -- 19141.6 messages per second
-    Beginning test - 1,000,000 messages - only TradeReport and QuoteUpdate messages, not printing
-    Parsed 1,000,000 messages in 54.0 seconds -- 18512.9 messages per second
+    ----------
+        Beginning test - 1,000,000 messages - all messages, not printing
+        Parsed 1,000,000 messages in 52.2 seconds -- 19141.6 messages per second
+        Beginning test - 1,000,000 messages - only TradeReport and QuoteUpdate messages, not printing
+        Parsed 1,000,000 messages in 54.0 seconds -- 18512.9 messages per second
     """
     allowed = None
     symbols = None
@@ -71,7 +104,17 @@ def benchmark_allowed(file_path, num_msgs):
     )
 
 
-def test_allowed(file_path, num_msgs):
+def test_allowed(file_path: os.PathLike, num_msgs: int) -> None:
+    """
+    Test the performance of the parser when only allowing TradeReport and QuoteUpdate messages.
+
+    Parameters
+    ----------
+    file_path : os.PathLike
+        Path to the pcap file to benchmark.
+    num_msgs : int
+        Number of messages to process.
+    """
     allowed = [messages.TradeReport, messages.QuoteUpdate]
     allowed = [messages.TradeReport]
     symbols = None
@@ -89,12 +132,14 @@ def test_allowed(file_path, num_msgs):
     )
 
 
-def decode_benchmark(num_times):
+def decode_benchmark(num_times: int) -> None:
     """
     Objective understand the speed at which decoding of binary data occurs with
     the struct.unpack function. This is the current hypothetical top speed for
     the program on one process.
+
     Results:
+    ----------
     Decoded 1,000,000 messages in 8.8 seconds -- 113169.2 messages per second
     Time to decode one message is 8.836324765 microseconds
     """
@@ -116,10 +161,15 @@ def decode_benchmark(num_times):
     )
 
 
-def test_price(file_path):
+def test_price(file_path: os.PathLike) -> None:
     """
     Show that price calculation being done in Messages parent class is being
     properly inherited.
+
+    Parameters
+    ----------
+    file_path : os.PathLike
+        Path to the pcap file to benchmark.
     """
     p = Parser(file_path)
     allowed = [messages.AuctionInformation]
